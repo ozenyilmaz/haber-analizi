@@ -97,10 +97,27 @@ vektorlestirici, yorum_modeli, olasilik_modeli = modeli_yukle(MODEL_DOSYASI)
 # ---------------------------------------------------------------------
 # Veri toplama
 # ---------------------------------------------------------------------
+# ESKİ HALİ:
+# HABER_ID_DESENI = re.compile(r"-\d{6,}(?:\.html?)?/?$")
+
+# YENİ HALİ: 6+ haneli ulusal ID'ler VEYA kısa ID'ler (-123) VEYA en az 3 tireli haber başlığı slug'ları
+HABER_ID_DESENI = re.compile(r"(?:[-/]\d{1,10}(?:\.html?)?/?$|(?:[a-zçğıöşü0-9]+-){3,}[a-zçğıöşü0-9]+/?$)")
+
+YASAKLI_DESENLER = (
+    "kvkk", "kisisel-verilerin", "kullanim-kosullari", "gizlilik-politikasi",
+    "enerji-politikasi", "namaz-vakitleri", "canli-borsa", "hesaplama-araclari",
+    "/haberleri/", "/doviz/", "/kunye", "/iletisim", "/hakkimizda", "/etiket/", "/tag/"
+)
+
 def haber_linki_mi(url):
-    """Yalnızca yol kısmının sonunda >=6 haneli sayısal haber ID'si olan linkleri kabul eder."""
+    """Ulusal ve yerel haber sitelerindeki tekil haber linklerini kabul eder, kurumsal/kategori sayfalarını eler."""
     try:
-        yol = urlparse(url).path
+        url_kucuk = url.lower().strip()
+        if any(y in url_kucuk for y in YASAKLI_DESENLER):
+            return False
+        yol = urlparse(url_kucuk).path.strip("/")
+        if len(yol) < 12:
+            return False
     except Exception:
         return False
     return bool(HABER_ID_DESENI.search(yol))
